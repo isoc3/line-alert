@@ -6,15 +6,15 @@
   <title>ระบบแชร์ ศนป.กอ.รมน.</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #f3f4f6; margin: 0; text-align: center; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; }
     .loader { border: 5px solid #f3f3f3; border-top: 5px solid #06C755; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #status { margin-top: 20px; color: #333; font-weight: bold; padding: 0 20px; }
+    #status { margin-top: 20px; color: #333; font-weight: bold; }
   </style>
 </head>
 <body>
   <div class="loader"></div>
-  <p id="status">กำลังเตรียมข้อมูลเพื่อแชร์ต่อ...</p>
+  <p id="status">กำลังเตรียมข้อมูลปลอดภัย...</p>
 
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
@@ -27,13 +27,12 @@
           return;
         }
 
-        // ดึงข้อมูลรหัสสั้นที่ถูกบีบอัดมา
         const p = new URLSearchParams(window.location.search);
         
-        // ฟังก์ชันคืนร่าง ID ให้กลายเป็นลิงก์รูปภาพเต็มๆ
+        // 🛡️ ดึงรูปจาก Drive ตรง (รักษาความลับ)
         const getImg = (id) => (id && id !== "undefined" && id !== "") ? "https://drive.google.com/uc?export=view&id=" + id : "https://via.placeholder.com/800x450.png?text=No+Image";
 
-        // คืนร่างที่อยู่ (จาก แม่สาย,แม่สาย,เชียงราย -> ต.แม่สาย อ.แม่สาย จ.เชียงราย)
+        // คืนร่างพิกัด (Sync 100%)
         let locStr = "ไม่ระบุพื้นที่";
         if (p.get('l')) {
           const pts = p.get('l').split(',');
@@ -54,15 +53,14 @@
 
         const isUrgent = (data.type == "24");
         
-        // ลิงก์สำหรับปุ่มแชร์ต่อในแชท (ใช้ลิงก์ปัจจุบันได้เลยเพราะสั้นแล้ว)
-        const shareUrl = "https://liff.line.me/" + LIFF_ID + window.location.search;
+        // ลิงก์สำหรับปุ่มแชร์ต่อ (ใช้ลิงก์ปัจจุบันแบบ Full ไม่ผ่านตัวย่อ)
+        const shareUrl = window.location.href;
 
-        document.getElementById('status').innerText = "กรุณาเลือกเพื่อนที่จะแชร์";
+        document.getElementById('status').innerText = "เลือกเพื่อนหรือกลุ่มที่ต้องการแชร์";
 
-        // ส่ง Flex Message รูปแบบสมบูรณ์
-        const result = await liff.shareTargetPicker([{
+        await liff.shareTargetPicker([{
           "type": "flex",
-          "altText": "แจ้งเตือนภัย: " + data.dis,
+          "altText": "🚨 แจ้งเตือนภัย: " + data.dis,
           "contents": {
             "type": "bubble", "size": "mega",
             "body": {
@@ -97,10 +95,9 @@
           }
         }]);
 
-        if (result) { liff.closeWindow(); } 
-        else { document.getElementById('status').innerText = "ยกเลิกการแชร์"; }
+        liff.closeWindow(); 
       } catch (err) {
-        document.getElementById('status').innerText = "เกิดข้อผิดพลาด: " + err.message;
+        document.getElementById('status').innerText = "Error: " + err.message;
       }
     }
     main();
