@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบแชร์ ศนป.กอ.รมน.</title>
+  <title>ระบบแชร์ปลอดภัย ศนป.กอ.รมน.</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #eef2f3; margin: 0; padding: 20px; }
     .loader { border: 5px solid #f3f3f3; border-top: 5px solid #06C755; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #status { margin-top: 20px; color: #333; font-weight: bold; }
@@ -14,7 +14,7 @@
 </head>
 <body>
   <div class="loader"></div>
-  <p id="status">กำลังเตรียมข้อมูลปลอดภัย...</p>
+  <p id="status">กำลังเตรียมข้อมูลพื้นที่...</p>
 
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
@@ -28,20 +28,22 @@
         }
 
         const p = new URLSearchParams(window.location.search);
-        
-        // 🛡️ ดึงรูปจาก Drive ตรง (รักษาความลับ)
         const getImg = (id) => (id && id !== "undefined" && id !== "") ? "https://drive.google.com/uc?export=view&id=" + id : "https://via.placeholder.com/800x450.png?text=No+Image";
 
-        // คืนร่างพิกัด (Sync 100%)
-        let locStr = "ไม่ระบุพื้นที่";
+        // --- 🛠️ ถอดรหัสพื้นที่หลายรายการ ---
+        let locDisplay = "ไม่ระบุพื้นที่";
         if (p.get('l')) {
-          const pts = p.get('l').split(',');
-          if(pts.length === 3) locStr = `ต.${pts[0]} อ.${pts[1]} จ.${pts[2]}`;
+          const areaGroups = p.get('l').split(',');
+          const formattedList = areaGroups.map(group => {
+            const pts = group.split('|');
+            return pts.length === 3 ? `- จ.${pts[2]} อ.${pts[1]} ต.${pts[0]}` : "";
+          }).filter(v => v !== "");
+          if(formattedList.length > 0) locDisplay = formattedList.join("\n");
         }
 
         const data = {
           type: p.get('t') || "24",
-          loc: locStr,
+          loc: locDisplay,
           dis: p.get('d') || "แจ้งเตือนภัย",
           det: p.get('de') || "-",
           mimg: getImg(p.get('m')),
@@ -52,11 +54,9 @@
         };
 
         const isUrgent = (data.type == "24");
-        
-        // ลิงก์สำหรับปุ่มแชร์ต่อ (ใช้ลิงก์ปัจจุบันแบบ Full ไม่ผ่านตัวย่อ)
-        const shareUrl = window.location.href;
+        const shareUrl = window.location.href; // ใช้ลิงก์ปัจจุบันเพื่อความปลอดภัย
 
-        document.getElementById('status').innerText = "เลือกเพื่อนหรือกลุ่มที่ต้องการแชร์";
+        document.getElementById('status').innerText = "กำลังเรียกหน้าเลือกเพื่อน...";
 
         await liff.shareTargetPicker([{
           "type": "flex",
@@ -80,27 +80,18 @@
                   { "type": "box", "layout": "vertical", "backgroundColor": "#ffffff", "paddingAll": "20px", "contents": [
                     { "type": "box", "layout": "vertical", "cornerRadius": "md", "contents": [{ "type": "image", "url": data.mimg, "size": "full", "aspectRatio": "16:9", "aspectMode": "cover" }] },
                     { "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm", "contents": [
-                      { "type": "box", "layout": "baseline", "spacing": "sm", "contents": [{ "type": "text", "text": "พิกัด:", "color": "#888888", "size": "md", "flex": 1 }, { "type": "text", "text": data.loc, "wrap": true, "color": "#000000", "size": "md", "flex": 4, "weight": "bold" } ]},
-                      { "type": "box", "layout": "baseline", "spacing": "sm", "contents": [{ "type": "text", "text": "ภัย:", "color": "#888888", "size": "md", "flex": 1 }, { "type": "text", "text": data.dis, "wrap": true, "color": isUrgent ? "#FF3B30" : "#FF9500", "size": "md", "flex": 4, "weight": "bold" } ]}
+                      { "type": "box", "layout": "vertical", "contents": [
+                        { "type": "text", "text": "พื้นที่เฝ้าระวัง:", "color": "#888888", "size": "sm" },
+                        { "type": "text", "text": data.loc, "wrap": true, "weight": "bold", "size": "sm", "margin": "sm", "color": "#000000" }
+                      ]},
+                      { "type": "box", "layout": "baseline", "spacing": "sm", "margin": "md", "contents": [
+                        { "type": "text", "text": "ภัย:", "color": "#888888", "size": "sm", "flex": 1 },
+                        { "type": "text", "text": data.dis, "wrap": true, "color": isUrgent ? "#FF3B30" : "#FF9500", "size": "sm", "flex": 4, "weight": "bold" }
+                      ]}
                     ]},
                     { "type": "text", "text": data.det, "wrap": true, "margin": "lg", "size": "sm", "color": "#333333" }
                   ]}
                 ]},
                 { "type": "box", "layout": "horizontal", "spacing": "md", "backgroundColor": "#ffffff", "paddingAll": "20px", "paddingTop": "10px", "contents": [
                   { "type": "button", "style": "primary", "color": isUrgent ? "#b22222" : "#FF9500", "height": "sm", "action": { "type": "uri", "label": "อ่านเพิ่ม", "uri": data.link } },
-                  { "type": "button", "style": "secondary", "height": "sm", "action": { "type": "uri", "label": "แชร์ต่อ", "uri": shareUrl } } 
-                ]}
-              ]
-            }
-          }
-        }]);
-
-        liff.closeWindow(); 
-      } catch (err) {
-        document.getElementById('status').innerText = "Error: " + err.message;
-      }
-    }
-    main();
-  </script>
-</body>
-</html>
+                  { "type": "button", "style": "secondary", "height": "sm", "action": { "
