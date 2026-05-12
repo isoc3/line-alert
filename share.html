@@ -14,16 +14,16 @@
 </head>
 <body>
   <div class="loader"></div>
-  <p id="status">กำลังเตรียมข้อมูลพื้นที่...</p>
+  <p id="status">กำลังเตรียมข้อมูลปลอดภัย...</p>
 
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
 
-    // 🛡️ ใส่รหัสรูปภาพตายตัวไว้ที่นี่ เพื่อประหยัดพื้นที่ URL
-    const CONST_IMG = {
-      BG: "1BN7SKJAsPCy7oO9Wk2_7Nl7y2673D", // รหัสรูปพื้นหลัง (คอลัมน์ J)
-      LOGO_L: "1BN7SKJAsPCy7oO9Wk2_7Nl7y2673D", // รหัสโลโก้ซ้าย (คอลัมน์ K)
-      LOGO_R: "1BN7SKJAsPCy7oO9Wk2_7Nl7y2673D"  // รหัสโลโก้ขวา (คอลัมน์ L)
+    // 🛡️ แก้ไขรหัสรูปภาพที่ใช้ประจำที่นี่ (ช่วยประหยัดพื้นที่ URL ได้มหาศาล)
+    const STATIC_IMG = {
+      BG: "1BN7SKJAsPCyBx3cUV_LNDXRcjnP86Th1", 
+      LOGO_L: "1BN7SKJAsPCyBx3cUV_LNDXRcjnP86Th1", 
+      LOGO_R: "1N3Dku7S3B2RK9qKf6e2D4g4Y4fI0ObFL"
     };
 
     async function main() {
@@ -37,7 +37,6 @@
         const p = new URLSearchParams(window.location.search);
         const getImg = (id) => (id && id !== "undefined" && id !== "") ? "https://drive.google.com/uc?export=view&id=" + id : "https://via.placeholder.com/800x450.png?text=No+Image";
 
-        // ถอดรหัสพื้นที่
         let locDisplay = "ไม่ระบุพื้นที่";
         if (p.get('l')) {
           const areaGroups = p.get('l').split(',');
@@ -49,15 +48,15 @@
         }
 
         const data = {
-          type: p.get('t') || "24",
+          type: p.get('t') || "48",
           loc: locDisplay,
           dis: p.get('d') || "แจ้งเตือนภัย",
           det: p.get('de') || "-",
-          mimg: getImg(p.get('m')), // รูปประกอบ (ยังส่งผ่าน URL เพราะเปลี่ยนบ่อย)
+          mimg: getImg(p.get('m')),
           link: p.get('u') || "https://www.isoc.go.th/",
-          bimg: getImg(CONST_IMG.BG),
-          limg: getImg(CONST_IMG.LOGO_L),
-          rimg: getImg(CONST_IMG.LOGO_R)
+          bimg: getImg(STATIC_IMG.BG),
+          limg: getImg(STATIC_IMG.LOGO_L),
+          rimg: getImg(STATIC_IMG.LOGO_R)
         };
 
         const isUrgent = (data.type == "24");
@@ -88,12 +87,12 @@
                     { "type": "box", "layout": "vertical", "cornerRadius": "md", "contents": [{ "type": "image", "url": data.mimg, "size": "full", "aspectRatio": "16:9", "aspectMode": "cover" }] },
                     { "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm", "contents": [
                       { "type": "box", "layout": "vertical", "contents": [
-                        { "type": "text", "text": "พื้นที่เฝ้าระวัง:", "color": "#888888", "size": "sm" },
-                        { "type": "text", "text": data.loc, "wrap": true, "weight": "bold", "size": "sm", "margin": "sm", "color": "#000000" }
+                        { "text": "พื้นที่เฝ้าระวัง:", "type": "text", "color": "#888888", "size": "sm" },
+                        { "text": data.loc, "type": "text", "wrap": true, "weight": "bold", "size": "sm", "margin": "sm", "color": "#000000" }
                       ]},
                       { "type": "box", "layout": "baseline", "spacing": "sm", "margin": "md", "contents": [
-                        { "type": "text", "text": "ภัย:", "color": "#888888", "size": "sm", "flex": 1 },
-                        { "type": "text", "text": data.dis, "wrap": true, "color": isUrgent ? "#FF3B30" : "#FF9500", "size": "sm", "flex": 4, "weight": "bold" }
+                        { "text": "ภัย:", "type": "text", "color": "#888888", "size": "sm", "flex": 1 },
+                        { "text": data.dis, "type": "text", "wrap": true, "color": isUrgent ? "#FF3B30" : "#FF9500", "size": "sm", "flex": 4, "weight": "bold" }
                       ]}
                     ]},
                     { "type": "text", "text": data.det, "wrap": true, "margin": "lg", "size": "sm", "color": "#333333" }
