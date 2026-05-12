@@ -94,4 +94,19 @@
                 ]},
                 { "type": "box", "layout": "horizontal", "spacing": "md", "backgroundColor": "#ffffff", "paddingAll": "20px", "paddingTop": "10px", "contents": [
                   { "type": "button", "style": "primary", "color": isUrgent ? "#b22222" : "#FF9500", "height": "sm", "action": { "type": "uri", "label": "อ่านเพิ่ม", "uri": data.link } },
-                  { "type": "button", "style": "secondary", "height": "sm", "action": { "
+                  { "type": "button", "style": "secondary", "height": "sm", "action": { "type": "uri", "label": "แชร์ต่อ", "uri": shareUrl } } 
+                ]}
+              ]
+            }
+          }
+        }]);
+
+        liff.closeWindow(); 
+      } catch (err) {
+        document.getElementById('status').innerText = "Error: " + err.message;
+      }
+    }
+    main();
+  </script>
+</body>
+</html>
