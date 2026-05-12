@@ -3,31 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบแชร์ ศนป.กอ.รมน.</title>
+  <title>Debug Share</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #f3f4f6; margin: 0; text-align: center; }
-    .loader { border: 5px solid #f3f3f3; border-top: 5px solid #06C755; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #status { margin-top: 20px; color: #333; font-weight: bold; padding: 0 20px; }
+    #status { padding: 20px; font-weight: bold; color: #333; }
+    .btn { padding: 10px 20px; background: #06C755; color: white; border: none; border-radius: 5px; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <div class="loader"></div>
-  <p id="status">กำลังเตรียมข้อมูลเพื่อแชร์ต่อ...</p>
+  <div id="status">กำลังตรวจสอบระบบ...</div>
+  <button id="recheckBtn" class="btn" style="display:none;" onclick="location.reload()">ลองใหม่อีกครั้ง</button>
 
   <script>
-    // 🚨 LIFF ID ของคุณ
     const LIFF_ID = "2010041585-Xig31aUQ"; 
-
-    // ฟังก์ชันย่อลิงก์เพื่อป้องกันปัญหาลิงก์ยาวเกิน 1000 ตัวอักษร
-    async function getShortUrl(longUrl) {
-      try {
-        const response = await fetch("https://tinyurl.com/api-create.php?url=" + encodeURIComponent(longUrl));
-        if (response.ok) { return await response.text(); }
-      } catch (e) { console.log("Shorten failed", e); }
-      return longUrl;
-    }
 
     async function main() {
       try {
@@ -37,84 +26,66 @@
           return;
         }
 
-        // ดึงข้อมูลจาก URL
         const p = new URLSearchParams(window.location.search);
         
-        // กำหนดรูปภาพสำรอง (ป้องกันระบบล่มถ้ารูปหาย)
-        const defaultImg = "https://via.placeholder.com/800x450.png?text=No+Image";
+        // 🚨 จุดเช็กที่ 1: ตรวจสอบรูปภาพ (LINE บังคับ HTTPS และห้ามมีค่าว่าง)
+        const getImg = (val) => {
+          if (!val || val.includes("undefined") || val === "") return "https://via.placeholder.com/800x450.png?text=Missing+Image";
+          return val.trim();
+        };
 
         const data = {
           type: p.get('type') || "24",
           loc: p.get('loc') || "ไม่ระบุพื้นที่",
           dis: p.get('dis') || "แจ้งเตือนภัย",
           det: p.get('det') || "-",
-          mimg: p.get('mimg') || defaultImg,
+          mimg: getImg(p.get('mimg')),
           link: p.get('link') || "https://www.isoc.go.th/",
-          bimg: p.get('bimg') || defaultImg,
-          limg: p.get('limg') || defaultImg,
-          rimg: p.get('rimg') || defaultImg
+          bimg: getImg(p.get('bimg')),
+          limg: getImg(p.get('limg')),
+          rimg: getImg(p.get('rimg'))
         };
 
-        const isUrgent = (data.type == "24");
+        document.getElementById('status').innerText = "กำลังเรียกหน้าจอแชร์...";
 
-        document.getElementById('status').innerText = "กำลังสร้างลิงก์แชร์...";
-
-        // 🚨 นำลิงก์เต็มไปย่อให้สั้นก่อนใส่ในปุ่ม (แก้ปัญหาแชร์แล้วแชทเงียบ)
-        const fullUrl = "https://liff.line.me/" + LIFF_ID + window.location.search;
-        let shareUrl = await getShortUrl(fullUrl);
-        if(shareUrl.length > 1000) { shareUrl = "https://liff.line.me/" + LIFF_ID; } // กันเหนียวชั้นที่ 2
-
-        document.getElementById('status').innerText = "กรุณาเลือกเพื่อนที่จะแชร์";
-
-        // ส่ง Share Target Picker
-        const result = await liff.shareTargetPicker([{
-          "type": "flex",
-          "altText": "แจ้งเตือนภัย: " + data.dis,
-          "contents": {
-            "type": "bubble", "size": "mega",
-            "body": {
-              "type": "box", "layout": "vertical", "paddingAll": "0px",
-              "contents": [
-                { "type": "image", "url": data.bimg, "position": "absolute", "size": "full", "aspectMode": "cover" },
-                { "type": "box", "layout": "vertical", "contents": [
-                  { "type": "box", "layout": "horizontal", "paddingAll": "15px", "backgroundColor": "#00000099", "alignItems": "center", "contents": [
-                    { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "cornerRadius": "100px", "borderWidth": "2px", "borderColor": "#ffffff", "contents": [{ "type": "image", "url": data.limg, "aspectMode": "cover", "size": "full" }] },
-                    { "type": "box", "layout": "vertical", "flex": 4, "contents": [
-                      { "type": "text", "text": "ศูนย์ข้อมูลน้ำ", "weight": "bold", "size": "lg", "color": "#ffffff", "align": "center" },
-                      { "type": "text", "text": "กอ.รมน.ภาค 3", "weight": "bold", "size": "sm", "color": "#ffffff", "align": "center" }
-                    ]},
-                    { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "cornerRadius": "100px", "borderWidth": "2px", "borderColor": "#ffffff", "contents": [{ "type": "image", "url": data.rimg, "aspectMode": "cover", "size": "full" }] }
-                  ]},
-                  { "type": "box", "layout": "vertical", "backgroundColor": isUrgent ? "#b22222" : "#FF9500", "paddingAll": "10px", "contents": [{ "type": "text", "text": isUrgent ? "🚨 เฝ้าระวังสูงสุด (ภายใน 24 ชม.)" : "⚠️ เฝ้าระวังล่วงหน้า (ภายใน 48 ชม.)", "color": "#ffffff", "weight": "bold", "size": "md", "align": "center" }] },
-                  { "type": "box", "layout": "vertical", "backgroundColor": "#ffffff", "paddingAll": "20px", "contents": [
-                    { "type": "box", "layout": "vertical", "cornerRadius": "md", "contents": [{ "type": "image", "url": data.mimg, "size": "full", "aspectRatio": "16:9", "aspectMode": "cover" }] },
-                    { "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm", "contents": [
-                      { "type": "box", "layout": "baseline", "spacing": "sm", "contents": [{ "type": "text", "text": "พิกัด:", "color": "#888888", "size": "md", "flex": 1 }, { "type": "text", "text": data.loc, "wrap": true, "color": "#000000", "size": "md", "flex": 4, "weight": "bold" } ]},
-                      { "type": "box", "layout": "baseline", "spacing": "sm", "contents": [{ "type": "text", "text": "ภัย:", "color": "#888888", "size": "md", "flex": 1 }, { "type": "text", "text": data.dis, "wrap": true, "color": isUrgent ? "#FF3B30" : "#FF9500", "size": "md", "flex": 4, "weight": "bold" } ]}
-                    ]},
-                    { "type": "text", "text": data.det, "wrap": true, "margin": "lg", "size": "sm", "color": "#333333" }
-                  ]}
-                ]},
-                { "type": "box", "layout": "horizontal", "spacing": "md", "backgroundColor": "#ffffff", "paddingAll": "20px", "paddingTop": "10px", "contents": [
-                  { "type": "button", "style": "primary", "color": isUrgent ? "#b22222" : "#FF9500", "height": "sm", "action": { "type": "uri", "label": "อ่านเพิ่ม", "uri": data.link } },
-                  { "type": "button", "style": "secondary", "height": "sm", "action": { "type": "uri", "label": "แชร์ต่อ", "uri": shareUrl } } // ใช้ลิงก์สั้นที่แปลงมาแล้ว
-                ]}
-              ]
+        // 🚨 จุดเช็กที่ 2: ลองส่งแบบ Simple Flex ก่อนเพื่อทดสอบท่อส่ง
+        const result = await liff.shareTargetPicker([
+          {
+            "type": "flex",
+            "altText": "🚨 แจ้งเตือนภัย: " + data.dis,
+            "contents": {
+              "type": "bubble",
+              "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                  { "type": "text", "text": "ศนป.กอ.รมน. แจ้งเตือนภัย", "weight": "bold", "color": "#1DB446", "size": "sm" },
+                  { "type": "text", "text": data.dis, "weight": "bold", "size": "xl", "margin": "md" },
+                  { "type": "text", "text": data.loc, "size": "xs", "color": "#aaaaaa", "wrap": true },
+                  { "type": "separator", "margin": "xxl" },
+                  { "type": "image", "url": data.mimg, "size": "full", "aspectRatio": "20:13", "aspectMode": "cover", "margin": "md" },
+                  { "type": "text", "text": data.det, "margin": "md", "size": "sm", "wrap": true },
+                  { "type": "button", "style": "primary", "color": "#06C755", "margin": "md", "action": { "type": "uri", "label": "ดูรายละเอียด", "uri": data.link } }
+                ]
+              }
             }
           }
-        }]);
+        ]);
 
-        if (result) { 
-          liff.closeWindow(); 
+        if (result) {
+          alert("✅ ส่งข้อมูลสำเร็จ!");
+          liff.closeWindow();
         } else {
-          document.getElementById('status').innerText = "ยกเลิกการแชร์ หรือแชร์ไม่สำเร็จ";
+          document.getElementById('status').innerText = "⚠️ คุณยกเลิกการแชร์";
+          document.getElementById('recheckBtn').style.display = "block";
         }
+
       } catch (err) {
-        document.getElementById('status').innerText = "เกิดข้อผิดพลาด: " + err.message;
-        alert("กรุณาตรวจสอบลิงก์หรือรูปภาพอีกครั้ง: " + err.message);
+        // 🚨 จุดเช็กที่ 3: ถ้า LINE ปฏิเสธ มันจะ Alert บอกสาเหตุตรงนี้!
+        alert("❌ LINE ปฏิเสธการส่ง: " + err.message);
+        document.getElementById('status').innerText = "ข้อผิดพลาด: " + err.message;
       }
     }
-    
     main();
   </script>
 </body>
