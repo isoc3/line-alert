@@ -9,7 +9,7 @@
     body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
     .loader { border: 6px solid #f3f3f3; border-top: 6px solid #06C755; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #status { margin-top: 20px; font-weight: bold; color: #333; text-align: center; line-height: 1.6; }
+    #status { margin-top: 20px; font-weight: bold; color: #333; text-align: center; }
     .btn-group { display: none; margin-top: 20px; gap: 10px; }
     button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
     .btn-retry { background-color: #06C755; color: white; }
@@ -27,8 +27,6 @@
 
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
-    
-    // 🚨 นำ URL แอปเว็บที่คุณ Deploy มาวางตรงนี้
     const API_URL = "https://script.google.com/macros/s/AKfycbyHmSEnS7r11kiO0ihn_cWq6DgQvY_focI4OeRC8uiApqEr5KqP861or4BMCmLHm3pz/exec"; 
 
     async function main() {
@@ -40,7 +38,6 @@
         const rowId = p.get('id');
         if (!rowId) throw new Error("ไม่พบรหัสข้อมูล");
 
-        // 🚀 แก้ไขจุดนี้: ล็อกให้ลิงก์ในปุ่มแชร์ต่อเป็นลิงก์ LIFF เสมอ
         const flexShareUrl = "https://liff.line.me/" + LIFF_ID + "?id=" + rowId;
 
         const response = await fetch(API_URL + "?id=" + rowId);
@@ -48,6 +45,7 @@
         if(res.error) throw new Error(res.error);
 
         const getImg = (id) => "https://drive.google.com/uc?export=view&id=" + id;
+        const getView = (id) => "https://drive.google.com/file/d/" + id + "/view?usp=sharing";
         
         const t = String(res.t).split(",");
         const a = String(res.a).split(",");
@@ -76,7 +74,19 @@
                   ]},
                   { "type": "box", "layout": "vertical", "backgroundColor": res.type == "24" ? "#b22222" : "#FF9500", "paddingAll": "10px", "contents": [{ "type": "text", "text": res.type == "24" ? "🚨 เฝ้าระวังสูงสุด" : "⚠️ เฝ้าระวังล่วงหน้า", "color": "#ffffff", "weight": "bold", "align": "center" }] },
                   { "type": "box", "layout": "vertical", "backgroundColor": "#ffffff", "paddingAll": "20px", "contents": [
-                    { "type": "box", "layout": "vertical", "cornerRadius": "md", "contents": [{ "type": "image", "url": getImg(res.m), "size": "full", "aspectRatio": "16:9", "aspectMode": "cover" }] },
+                    { 
+                      "type": "box", 
+                      "layout": "vertical", 
+                      "cornerRadius": "md", 
+                      "contents": [{ 
+                        "type": "image", 
+                        "url": getImg(res.m), 
+                        "size": "full", 
+                        "aspectRatio": "16:9", 
+                        "aspectMode": "cover",
+                        "action": { "type": "uri", "label": "ดูรูปใหญ่", "uri": getView(res.m) } // 👈 เพิ่มการกดที่รูป
+                      }] 
+                    },
                     { "type": "box", "layout": "vertical", "margin": "lg", "contents": [
                       { "type": "text", "text": "พื้นที่เฝ้าระวัง:", "color": "#888888", "size": "sm" },
                       { "type": "text", "text": locList.join("\n"), "wrap": true, "weight": "bold", "size": "sm" },
@@ -94,11 +104,10 @@
           }
         }]);
 
-        if (result) {
-          liff.closeWindow(); 
-        } else {
+        if (result) { liff.closeWindow(); } 
+        else {
           document.getElementById('loader').style.display = "none";
-          document.getElementById('status').innerHTML = "คุณยกเลิกการแชร์<br>ต้องการทำรายการใหม่หรือไม่?";
+          document.getElementById('status').innerHTML = "ยกเลิกการแชร์แล้ว";
           document.getElementById('btnGroup').style.display = "flex";
         }
 
