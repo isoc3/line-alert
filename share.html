@@ -6,14 +6,15 @@
   <title>ระบบแชร์ ศนป.กอ.รมน.</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #eef2f3; margin: 0; }
-    .loader { border: 5px solid #f3f3f3; border-top: 5px solid #06C755; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #f4f7f6; margin: 0; }
+    .loader { border: 6px solid #f3f3f3; border-top: 6px solid #06C755; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #status { margin-top: 20px; font-weight: bold; color: #333; }
   </style>
 </head>
 <body>
   <div class="loader"></div>
-  <p id="status">กำลังดึงข้อมูลล่าสุดจากระบบ...</p>
+  <p id="status">กำลังดึงข้อมูลพื้นที่ทั้งหมด...</p>
 
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
@@ -27,21 +28,22 @@
 
         const p = new URLSearchParams(window.location.search);
         const rowId = p.get('id');
-        if (!rowId) throw new Error("ไม่พบรหัสข้อมูล");
+        if (!rowId) throw new Error("ไม่พบรหัสแถวข้อมูล");
 
-        // ดึงข้อมูลจาก Google Sheets ผ่าน API ของเราเอง (ปลอดภัยและครบถ้วน)
+        // ดึงข้อมูลจาก Google Sheets API
         const response = await fetch(API_URL + "?id=" + rowId);
         const res = await response.json();
+        if(res.error) throw new Error(res.error);
 
         const getImg = (id) => "https://drive.google.com/uc?export=view&id=" + id;
         
-        // จัดการพื้นที่ (ดึงมาครบทุกตำบล)
+        // จัดการพื้นที่ (แตกคอมม่าแสดงผลแยกบรรทัด)
         const t = String(res.t).split(",");
         const a = String(res.a).split(",");
         const j = String(res.j).split(",");
         let locList = [];
-        for(let i=0; i<j.length; i++) {
-          locList.push(`- จ.${j[i].trim()} อ.${a[i].trim()} ต.${t[i].trim()}`);
+        for(let i=0; i < Math.max(t.length, a.length, j.length); i++) {
+          locList.push(`- จ.${(j[i]||"-").trim()} อ.${(a[i]||"-").trim()} ต.${(t[i]||"-").trim()}`);
         }
 
         await liff.shareTargetPicker([{
@@ -80,7 +82,7 @@
         }]);
         liff.closeWindow(); 
       } catch (err) {
-        document.getElementById('status').innerText = "เกิดข้อผิดพลาด: " + err.message;
+        document.getElementById('status').innerText = "❌ เกิดข้อผิดพลาด: " + err.message;
       }
     }
     main();
