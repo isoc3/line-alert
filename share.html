@@ -6,101 +6,73 @@
   <title>ระบบแชร์ ศนป.กอ.รมน.</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #eef2f3; margin: 0; padding: 20px; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #eef2f3; margin: 0; }
     .loader { border: 5px solid #f3f3f3; border-top: 5px solid #06C755; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #status { margin-top: 20px; color: #333; font-weight: bold; text-align: center; }
   </style>
 </head>
 <body>
   <div class="loader"></div>
-  <p id="status">กำลังเตรียมข้อมูลปลอดภัย...</p>
+  <p id="status">กำลังดึงข้อมูลล่าสุดจากระบบ...</p>
 
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
-
-    // 🛡️ แก้ไขรหัสรูปภาพที่ใช้ประจำที่นี่ (ช่วยประหยัดพื้นที่ URL ได้มหาศาล)
-    const STATIC_IMG = {
-      BG: "1BN7SKJAsPCy7oO9Wk2_7Nl7y2673D", 
-      LOGO_L: "1BN7SKJAsPCy7oO9Wk2_7Nl7y2673D", 
-      LOGO_R: "1BN7SKJAsPCy7oO9Wk2_7Nl7y2673D"
-    };
+    // 🚨 นำ URL แอปเว็บที่คุณ Deploy มาวางตรงนี้
+    const API_URL = "ใส่_URL_แอปเว็บ_ของคุณที่นี่";
 
     async function main() {
       try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) {
-          liff.login({ redirectUri: window.location.href });
-          return;
-        }
+        if (!liff.isLoggedIn()) { liff.login(); return; }
 
         const p = new URLSearchParams(window.location.search);
-        const getImg = (id) => (id && id !== "undefined" && id !== "") ? "https://drive.google.com/uc?export=view&id=" + id : "https://via.placeholder.com/800x450.png?text=No+Image";
+        const rowId = p.get('id');
+        if (!rowId) throw new Error("ไม่พบรหัสข้อมูล");
 
-        let locDisplay = "ไม่ระบุพื้นที่";
-        if (p.get('l')) {
-          const areaGroups = p.get('l').split(',');
-          const formattedList = areaGroups.map(group => {
-            const pts = group.split('|');
-            return pts.length === 3 ? `- จ.${pts[2]} อ.${pts[1]} ต.${pts[0]}` : "";
-          }).filter(v => v !== "");
-          if(formattedList.length > 0) locDisplay = formattedList.join("\n");
+        // ดึงข้อมูลจาก Google Sheets ผ่าน API ของเราเอง (ปลอดภัยและครบถ้วน)
+        const response = await fetch(API_URL + "?id=" + rowId);
+        const res = await response.json();
+
+        const getImg = (id) => "https://drive.google.com/uc?export=view&id=" + id;
+        
+        // จัดการพื้นที่ (ดึงมาครบทุกตำบล)
+        const t = String(res.t).split(",");
+        const a = String(res.a).split(",");
+        const j = String(res.j).split(",");
+        let locList = [];
+        for(let i=0; i<j.length; i++) {
+          locList.push(`- จ.${j[i].trim()} อ.${a[i].trim()} ต.${t[i].trim()}`);
         }
-
-        const data = {
-          type: p.get('t') || "48",
-          loc: locDisplay,
-          dis: p.get('d') || "แจ้งเตือนภัย",
-          det: p.get('de') || "-",
-          mimg: getImg(p.get('m')),
-          link: p.get('u') || "https://www.isoc.go.th/",
-          bimg: getImg(STATIC_IMG.BG),
-          limg: getImg(STATIC_IMG.LOGO_L),
-          rimg: getImg(STATIC_IMG.LOGO_R)
-        };
-
-        const isUrgent = (data.type == "24");
-        const shareUrl = window.location.href;
-
-        document.getElementById('status').innerText = "เลือกเพื่อนหรือกลุ่มที่ต้องการแชร์";
 
         await liff.shareTargetPicker([{
           "type": "flex",
-          "altText": "🚨 แจ้งเตือนภัย: " + data.dis,
+          "altText": "🚨 แจ้งเตือนภัย: " + res.dis,
           "contents": {
             "type": "bubble", "size": "mega",
             "body": {
               "type": "box", "layout": "vertical", "paddingAll": "0px",
               "contents": [
-                { "type": "image", "url": data.bimg, "position": "absolute", "size": "full", "aspectMode": "cover" },
+                { "type": "image", "url": getImg(res.b), "position": "absolute", "size": "full", "aspectMode": "cover" },
                 { "type": "box", "layout": "vertical", "contents": [
-                  { "type": "box", "layout": "horizontal", "paddingAll": "15px", "backgroundColor": "#00000099", "alignItems": "center", "contents": [
-                    { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "cornerRadius": "100px", "borderWidth": "2px", "borderColor": "#ffffff", "contents": [{ "type": "image", "url": data.limg, "aspectMode": "cover", "size": "full" }] },
-                    { "type": "box", "layout": "vertical", "flex": 4, "contents": [
-                      { "type": "text", "text": "ศูนย์ข้อมูลน้ำ", "weight": "bold", "size": "lg", "color": "#ffffff", "align": "center" },
-                      { "type": "text", "text": "กอ.รมน.ภาค 3", "weight": "bold", "size": "sm", "color": "#ffffff", "align": "center" }
-                    ]},
-                    { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "cornerRadius": "100px", "borderWidth": "2px", "borderColor": "#ffffff", "contents": [{ "type": "image", "url": data.rimg, "aspectMode": "cover", "size": "full" }] }
+                  { "type": "box", "layout": "horizontal", "paddingAll": "15px", "backgroundColor": "#00000099", "contents": [
+                    { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "contents": [{ "type": "image", "url": getImg(res.lg), "size": "full" }] },
+                    { "type": "box", "layout": "vertical", "flex": 4, "contents": [{ "type": "text", "text": "ศูนย์ข้อมูลน้ำ", "weight": "bold", "color": "#ffffff", "align": "center" }, { "type": "text", "text": "กอ.รมน.ภาค 3", "size": "sm", "color": "#ffffff", "align": "center" }] },
+                    { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "contents": [{ "type": "image", "url": getImg(res.rg), "size": "full" }] }
                   ]},
-                  { "type": "box", "layout": "vertical", "backgroundColor": isUrgent ? "#b22222" : "#FF9500", "paddingAll": "10px", "contents": [{ "type": "text", "text": isUrgent ? "🚨 เฝ้าระวังสูงสุด (ภายใน 24 ชม.)" : "⚠️ เฝ้าระวังล่วงหน้า (ภายใน 48 ชม.)", "color": "#ffffff", "weight": "bold", "size": "md", "align": "center" }] },
+                  { "type": "box", "layout": "vertical", "backgroundColor": res.type == "24" ? "#b22222" : "#FF9500", "paddingAll": "10px", "contents": [{ "type": "text", "text": res.type == "24" ? "🚨 เฝ้าระวังสูงสุด" : "⚠️ เฝ้าระวังล่วงหน้า", "color": "#ffffff", "weight": "bold", "align": "center" }] },
                   { "type": "box", "layout": "vertical", "backgroundColor": "#ffffff", "paddingAll": "20px", "contents": [
-                    { "type": "box", "layout": "vertical", "cornerRadius": "md", "contents": [{ "type": "image", "url": data.mimg, "size": "full", "aspectRatio": "16:9", "aspectMode": "cover" }] },
-                    { "type": "box", "layout": "vertical", "margin": "lg", "spacing": "sm", "contents": [
-                      { "type": "box", "layout": "vertical", "contents": [
-                        { "text": "พื้นที่เฝ้าระวัง:", "type": "text", "color": "#888888", "size": "sm" },
-                        { "text": data.loc, "type": "text", "wrap": true, "weight": "bold", "size": "sm", "margin": "sm", "color": "#000000" }
-                      ]},
-                      { "type": "box", "layout": "baseline", "spacing": "sm", "margin": "md", "contents": [
-                        { "text": "ภัย:", "type": "text", "color": "#888888", "size": "sm", "flex": 1 },
-                        { "text": data.dis, "type": "text", "wrap": true, "color": isUrgent ? "#FF3B30" : "#FF9500", "size": "sm", "flex": 4, "weight": "bold" }
-                      ]}
-                    ]},
-                    { "type": "text", "text": data.det, "wrap": true, "margin": "lg", "size": "sm", "color": "#333333" }
+                    { "type": "box", "layout": "vertical", "cornerRadius": "md", "contents": [{ "type": "image", "url": getImg(res.m), "size": "full", "aspectRatio": "16:9", "aspectMode": "cover" }] },
+                    { "type": "box", "layout": "vertical", "margin": "lg", "contents": [
+                      { "type": "text", "text": "พื้นที่เฝ้าระวัง:", "color": "#888888", "size": "sm" },
+                      { "type": "text", "text": locList.join("\n"), "wrap": true, "weight": "bold", "size": "sm" },
+                      { "type": "text", "text": "ภัย: " + res.dis, "weight": "bold", "color": res.type == "24" ? "#FF3B30" : "#FF9500", "margin": "md" },
+                      { "type": "text", "text": res.det, "wrap": true, "size": "sm", "margin": "sm" }
+                    ]}
                   ]}
                 ]},
-                { "type": "box", "layout": "horizontal", "spacing": "md", "backgroundColor": "#ffffff", "paddingAll": "20px", "paddingTop": "10px", "contents": [
-                  { "type": "button", "style": "primary", "color": isUrgent ? "#b22222" : "#FF9500", "height": "sm", "action": { "type": "uri", "label": "อ่านเพิ่ม", "uri": data.link } },
-                  { "type": "button", "style": "secondary", "height": "sm", "action": { "type": "uri", "label": "แชร์ต่อ", "uri": shareUrl } } 
+                { "type": "box", "layout": "horizontal", "backgroundColor": "#ffffff", "paddingAll": "20px", "contents": [
+                  { "type": "button", "style": "primary", "color": res.type == "24" ? "#b22222" : "#FF9500", "action": { "type": "uri", "label": "อ่านเพิ่ม", "uri": res.u } },
+                  { "type": "button", "style": "secondary", "action": { "type": "uri", "label": "แชร์ต่อ", "uri": window.location.href } }
                 ]}
               ]
             }
@@ -108,7 +80,7 @@
         }]);
         liff.closeWindow(); 
       } catch (err) {
-        document.getElementById('status').innerText = "Error: " + err.message;
+        document.getElementById('status').innerText = "เกิดข้อผิดพลาด: " + err.message;
       }
     }
     main();
