@@ -32,9 +32,9 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbzcJ4LGPc4n9Gsihjnyqa_xc4nZIpJ9mTxnUkdUyTq1T4oTpqffoTX78160kod-z06mbA/exec"; 
 
     // 🚨 2. ใส่ ID รูปภาพแบบคงที่ของคุณตรงนี้ (ให้เหมือนฝั่ง Apps Script)
-    const BG_IMG_ID = "ใส่_ID_รูปพื้นหลังตรงนี้";
-    const LOGO_LEFT_ID = "ใส่_ID_โลโก้ซ้ายตรงนี้";
-    const LOGO_RIGHT_ID = "ใส่_ID_โลโก้ขวาตรงนี้";
+    const BG_IMG_ID = "1BN7SKJAsPCyBx3cUV_LNDXRcjnP86Th1";
+    const LOGO_LEFT_ID = "1BN7SKJAsPCyBx3cUV_LNDXRcjnP86Th1";
+    const LOGO_RIGHT_ID = "1Qz3iZQzMrrFkcG_G-F9Mgm6pF7Ljw79M";
 
     async function main() {
       try {
@@ -87,7 +87,8 @@
                     { "type": "box", "layout": "vertical", "margin": "lg", "contents": [
                       { "type": "text", "text": "พื้นที่เฝ้าระวัง:", "color": "#888888", "size": "sm" },
                       { "text": locList.join("\n"), "type": "text", "wrap": true, "weight": "bold", "size": "sm" },
-                      { "text": "ภัย: " + res.dis, "type": "text", "weight": "bold", "color": res.type == "24" ? "#FF3B30" : "#FF9500", "margin": "md" },
+                      // 🚨 ใส่ wrap: true ตรงนี้เพื่อแก้ปัญหาจุดไข่ปลา
+                      { "text": "ภัย: " + res.dis, "type": "text", "weight": "bold", "color": res.type == "24" ? "#FF3B30" : "#FF9500", "margin": "md", "wrap": true },
                       { "text": res.det, "type": "text", "wrap": true, "size": "sm", "margin": "sm", "color": "#333333" },
                       { "type": "text", "text": "🕒 ข้อมูล ณ วันที่ " + res.tm, "size": "xs", "color": "#aaaaaa", "margin": "xl" }
                     ]}
