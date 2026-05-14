@@ -28,8 +28,13 @@
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
     
-    // 🚨 นำ URL แอปเว็บที่คุณ Deploy (Everyone) มาวางตรงนี้
+    // 🚨 1. นำ URL แอปเว็บที่คุณ Deploy มาวางตรงนี้
     const API_URL = "https://script.google.com/macros/s/AKfycbzcJ4LGPc4n9Gsihjnyqa_xc4nZIpJ9mTxnUkdUyTq1T4oTpqffoTX78160kod-z06mbA/exec"; 
+
+    // 🚨 2. ใส่ ID รูปภาพแบบคงที่ของคุณตรงนี้ (ให้เหมือนฝั่ง Apps Script)
+    const BG_IMG_ID = "ใส่_ID_รูปพื้นหลังตรงนี้";
+    const LOGO_LEFT_ID = "ใส่_ID_โลโก้ซ้ายตรงนี้";
+    const LOGO_RIGHT_ID = "ใส่_ID_โลโก้ขวาตรงนี้";
 
     async function main() {
       try {
@@ -40,23 +45,19 @@
         const rowId = p.get('id');
         if (!rowId) throw new Error("ไม่พบรหัสอ้างอิงข้อมูล");
 
-        // ดึงข้อมูลจาก Google Sheets Database
         const response = await fetch(API_URL + "?id=" + rowId);
         const res = await response.json();
         if(res.error) throw new Error(res.error);
 
-        const getImg = (id) => "https://drive.google.com/uc?export=view&id=" + id;
-        const getView = (id) => "https://drive.google.com/file/d/" + id + "/view?usp=sharing";
+        const getImg = (id) => (id && id.trim() !== "") ? "https://drive.google.com/uc?export=view&id=" + id.trim() : "https://via.placeholder.com/800";
+        const getView = (id) => (id && id.trim() !== "") ? "https://drive.google.com/file/d/" + id.trim() + "/view?usp=sharing" : "https://www.isoc.go.th/";
         
-        // ถอดรหัสพื้นที่ (จาก tambon|amphoe|changwat)
         let locList = res.l_raw.split(",").map(item => {
           let pts = item.split("|");
           return `- จ.${pts[2]} อ.${pts[1]} ต.${pts[0]}`;
         });
 
-        // ล็อกลิงก์แชร์ให้เป็น LIFF เสมอเพื่อป้องกัน Error เวลาแชร์ซ้ำ
         const flexShareUrl = "https://liff.line.me/" + LIFF_ID + "?id=" + rowId;
-
         document.getElementById('status').innerText = "เลือกเพื่อนหรือกลุ่มที่ต้องการแชร์";
 
         const result = await liff.shareTargetPicker([{
@@ -67,18 +68,14 @@
             "body": {
               "type": "box", "layout": "vertical", "paddingAll": "0px",
               "contents": [
-                // รูปพื้นหลัง (ใช้ ID เดิมที่คุณตั้งไว้)
-                { "type": "image", "url": getImg("1BN7SKJAsPCy7oO9Wk2_7Nl7y2673D"), "position": "absolute", "size": "full", "aspectMode": "cover" },
+                { "type": "image", "url": getImg(BG_IMG_ID), "position": "absolute", "size": "full", "aspectMode": "cover" },
                 { "type": "box", "layout": "vertical", "contents": [
-                  // ส่วนหัว (โลโก้)
                   { "type": "box", "layout": "horizontal", "paddingAll": "15px", "backgroundColor": "#00000099", "contents": [
-                    { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "contents": [{ "type": "image", "url": getImg("1BN7SKJAsPCy7oO9Wk2_7Nl7y2673D"), "size": "full" }] },
+                    { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "contents": [{ "type": "image", "url": getImg(LOGO_LEFT_ID), "size": "full" }] },
                     { "type": "box", "layout": "vertical", "flex": 4, "contents": [{ "type": "text", "text": "ศูนย์ข้อมูลน้ำ", "weight": "bold", "color": "#ffffff", "align": "center" }, { "type": "text", "text": "กอ.รมน.ภาค 3", "size": "sm", "color": "#ffffff", "align": "center" }] },
-                    { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "contents": [{ "type": "image", "url": getImg("1BN7SKJAsPCy7oO9Wk2_7Nl7y2673D"), "size": "full" }] }
+                    { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "contents": [{ "type": "image", "url": getImg(LOGO_RIGHT_ID), "size": "full" }] }
                   ]},
-                  // แถบประเภทเตือนภัย
                   { "type": "box", "layout": "vertical", "backgroundColor": res.type == "24" ? "#b22222" : "#FF9500", "paddingAll": "10px", "contents": [{ "type": "text", "text": res.type == "24" ? "🚨 เฝ้าระวังสูงสุด (24 ชม.)" : "⚠️ เฝ้าระวังล่วงหน้า (48 ชม.)", "color": "#ffffff", "weight": "bold", "align": "center" }] },
-                  // เนื้อหา
                   { "type": "box", "layout": "vertical", "backgroundColor": "#ffffff", "paddingAll": "20px", "contents": [
                     { 
                       "type": "box", "layout": "vertical", "cornerRadius": "md", 
@@ -92,12 +89,10 @@
                       { "text": locList.join("\n"), "type": "text", "wrap": true, "weight": "bold", "size": "sm" },
                       { "text": "ภัย: " + res.dis, "type": "text", "weight": "bold", "color": res.type == "24" ? "#FF3B30" : "#FF9500", "margin": "md" },
                       { "text": res.det, "type": "text", "wrap": true, "size": "sm", "margin": "sm", "color": "#333333" },
-                      // Timestamp จาก Database
                       { "type": "text", "text": "🕒 ข้อมูล ณ วันที่ " + res.tm, "size": "xs", "color": "#aaaaaa", "margin": "xl" }
                     ]}
                   ]}
                 ]},
-                // ปุ่มกด
                 { "type": "box", "layout": "horizontal", "backgroundColor": "#ffffff", "paddingAll": "20px", "contents": [
                   { "type": "button", "style": "primary", "color": res.type == "24" ? "#b22222" : "#FF9500", "action": { "type": "uri", "label": "อ่านเพิ่ม", "uri": res.u } },
                   { "type": "button", "style": "secondary", "action": { "type": "uri", "label": "แชร์ต่อ", "uri": flexShareUrl } } 
