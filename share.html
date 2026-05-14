@@ -6,20 +6,30 @@
   <title>ระบบแชร์ ศนป.กอ.รมน.</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #f4f7f6; margin: 0; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
     .loader { border: 6px solid #f3f3f3; border-top: 6px solid #06C755; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #status { margin-top: 20px; font-weight: bold; color: #333; }
+    #status { margin-top: 20px; font-weight: bold; color: #333; text-align: center; line-height: 1.6; }
+    .btn-group { display: none; margin-top: 20px; gap: 10px; }
+    button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    .btn-retry { background-color: #06C755; color: white; }
+    .btn-close { background-color: #888; color: white; }
   </style>
 </head>
 <body>
-  <div class="loader"></div>
-  <p id="status">กำลังดึงข้อมูลพื้นที่ทั้งหมด...</p>
+  <div id="loader" class="loader"></div>
+  <p id="status">กำลังดึงข้อมูลพื้นที่...</p>
+  
+  <div id="btnGroup" class="btn-group">
+    <button class="btn-retry" onclick="location.reload()">ลองแชร์อีกครั้ง</button>
+    <button class="btn-close" onclick="liff.closeWindow()">ปิดหน้าต่าง</button>
+  </div>
 
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
+    
     // 🚨 นำ URL แอปเว็บที่คุณ Deploy มาวางตรงนี้
-    const API_URL = "https://script.google.com/macros/s/AKfycbyHmSEnS7r11kiO0ihn_cWq6DgQvY_focI4OeRC8uiApqEr5KqP861or4BMCmLHm3pz/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyHmSEnS7r11kiO0ihn_cWq6DgQvY_focI4OeRC8uiApqEr5KqP861or4BMCmLHm3pz/exec"; 
 
     async function main() {
       try {
@@ -28,16 +38,17 @@
 
         const p = new URLSearchParams(window.location.search);
         const rowId = p.get('id');
-        if (!rowId) throw new Error("ไม่พบรหัสแถวข้อมูล");
+        if (!rowId) throw new Error("ไม่พบรหัสข้อมูล");
 
-        // ดึงข้อมูลจาก Google Sheets API
+        // 🚀 แก้ไขจุดนี้: ล็อกให้ลิงก์ในปุ่มแชร์ต่อเป็นลิงก์ LIFF เสมอ
+        const flexShareUrl = "https://liff.line.me/" + LIFF_ID + "?id=" + rowId;
+
         const response = await fetch(API_URL + "?id=" + rowId);
         const res = await response.json();
         if(res.error) throw new Error(res.error);
 
         const getImg = (id) => "https://drive.google.com/uc?export=view&id=" + id;
         
-        // จัดการพื้นที่ (แตกคอมม่าแสดงผลแยกบรรทัด)
         const t = String(res.t).split(",");
         const a = String(res.a).split(",");
         const j = String(res.j).split(",");
@@ -46,7 +57,9 @@
           locList.push(`- จ.${(j[i]||"-").trim()} อ.${(a[i]||"-").trim()} ต.${(t[i]||"-").trim()}`);
         }
 
-        await liff.shareTargetPicker([{
+        document.getElementById('status').innerText = "เลือกเพื่อนหรือกลุ่มที่ต้องการแชร์";
+
+        const result = await liff.shareTargetPicker([{
           "type": "flex",
           "altText": "🚨 แจ้งเตือนภัย: " + res.dis,
           "contents": {
@@ -74,15 +87,25 @@
                 ]},
                 { "type": "box", "layout": "horizontal", "backgroundColor": "#ffffff", "paddingAll": "20px", "contents": [
                   { "type": "button", "style": "primary", "color": res.type == "24" ? "#b22222" : "#FF9500", "action": { "type": "uri", "label": "อ่านเพิ่ม", "uri": res.u } },
-                  { "type": "button", "style": "secondary", "action": { "type": "uri", "label": "แชร์ต่อ", "uri": window.location.href } }
+                  { "type": "button", "style": "secondary", "action": { "type": "uri", "label": "แชร์ต่อ", "uri": flexShareUrl } } 
                 ]}
               ]
             }
           }
         }]);
-        liff.closeWindow(); 
+
+        if (result) {
+          liff.closeWindow(); 
+        } else {
+          document.getElementById('loader').style.display = "none";
+          document.getElementById('status').innerHTML = "คุณยกเลิกการแชร์<br>ต้องการทำรายการใหม่หรือไม่?";
+          document.getElementById('btnGroup').style.display = "flex";
+        }
+
       } catch (err) {
-        document.getElementById('status').innerText = "❌ เกิดข้อผิดพลาด: " + err.message;
+        document.getElementById('loader').style.display = "none";
+        document.getElementById('status').innerHTML = "❌ เกิดข้อผิดพลาด:<br>" + err.message;
+        document.getElementById('btnGroup').style.display = "flex";
       }
     }
     main();
