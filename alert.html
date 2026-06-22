@@ -27,10 +27,9 @@
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
     
-    // 🚨 URL ของ Google Apps Script (ตรวจสอบให้แน่ใจว่าเป็นเวอร์ชันที่รองรับ callback แล้ว)
-    const API_URL = "https://script.google.com/macros/s/AKfycbzr0gcrRMSb6WBBsIusERiH4wPVUY1rMpsn2tCeDGELSn1R754lXwlD5CdhC1tGgTE0cg/execc"; 
+    // 🚨 ลิงก์ใหม่ล่าสุดที่คุณให้มา
+    const API_URL = "https://script.google.com/macros/s/AKfycbzr0gcrRMSb6WBBsIusERiH4wPVUY1rMpsn2tCeDGELSn1R754lXwlD5CdhC1tGgTE0cg/exec"; 
 
-    // 🚨 ID รูปภาพแบบคงที่
     const BG_IMG_ID = "1BN7SKJAsPCyBx3cUV_LNDXRcjnP86Th1";
     const LOGO_LEFT_ID = "1BN7SKJAsPCyBx3cUV_LNDXRcjnP86Th1";
     const LOGO_RIGHT_ID = "1Qz3iZQzMrrFkcG_G-F9Mgm6pF7Ljw79M";
@@ -42,17 +41,16 @@
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         
-        // ดึงพารามิเตอร์ ?id= จาก URL (ตัวอย่าง: https://liff.line.me/xxxxxx?id=1)
         const p = new URLSearchParams(window.location.search);
         rowId = p.get('id');
         
         if (!rowId) {
           document.getElementById('loader').style.display = "none";
-          document.getElementById('status').innerText = "❌ ไม่พบรหัสรายงาน (ID) ในลิงก์";
+          document.getElementById('status').innerText = "❌ ไม่พบรหัสรายงาน (ID) ในลิงก์\n(กรุณากดแชร์จากการ์ดในห้องแชท)";
           return;
         }
 
-        // 💡 ใช้ JSONP เพื่อดึงข้อมูล ทะลุกำแพงการบล็อกของมือถือและเครือข่ายองค์กร
+        // ใช้ JSONP ดึงข้อมูล
         const script = document.createElement('script');
         script.src = API_URL + "?id=" + rowId + "&callback=liffCallback";
         document.body.appendChild(script);
@@ -63,11 +61,14 @@
       }
     }
 
-    // 💡 ฟังก์ชันนี้จะถูกเรียกใช้อัตโนมัติเมื่อ Google Apps Script ส่งข้อมูลกลับมาสำเร็จ
     async function liffCallback(res) {
       try {
+        // ตรวจจับ Error จาก Google Apps Script (ถ้าระบุ ID ไม่ตรง)
+        if (res && res.error) {
+          throw new Error(res.error);
+        }
         if (!res || res === "Error") {
-          throw new Error("ไม่พบข้อมูลรายงานในชีต Database หรือดึงข้อมูลล้มเหลว");
+          throw new Error("ไม่พบข้อมูลรายงานในชีต Database");
         }
 
         document.getElementById('status').innerText = "⏳ กำลังเปิดหน้าต่างแชร์...";
@@ -83,7 +84,6 @@
         
         const flexShareUrl = "https://liff.line.me/" + LIFF_ID + "?id=" + rowId;
 
-        // สั่งเปิดหน้าต่างเลือกเพื่อน/กลุ่มใน LINE
         await liff.shareTargetPicker([{
           "type": "flex",
           "altText": "🚨 แจ้งเตือนภัย: " + res.dis,
@@ -121,7 +121,6 @@
           }
         }]);
 
-        // ปิดหน้าจออัตโนมัติเมื่อกดแชร์เสร็จ หรือกดยกเลิก
         liff.closeWindow(); 
 
       } catch (err) {
