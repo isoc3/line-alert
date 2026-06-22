@@ -27,7 +27,7 @@
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
     
-    // 🚨 1. นำ URL แอปเว็บที่คุณ Deploy มาวางตรงนี้
+    // 🚨 1. URL ของแอปเว็บกูเกิลของคุณ
     const API_URL = "https://script.google.com/macros/s/AKfycbxHjLlWb3tOIOGkizcdAn1cFYd9a_NM7du7Nw3KM5WDEH-B17pbGIINsKTmi2-RpdO8Pw/exec"; 
 
     // 🚨 2. ใส่ ID รูปภาพแบบคงที่ของคุณตรงนี้
@@ -35,24 +35,57 @@
     const LOGO_LEFT_ID = "1BN7SKJAsPCyBx3cUV_LNDXRcjnP86Th1";
     const LOGO_RIGHT_ID = "1Qz3iZQzMrrFkcG_G-F9Mgm6pF7Ljw79M";
 
+    let rowId = null;
+
     async function main() {
       try {
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
-        const p = new URLSearchParams(window.location.search), rowId = p.get('id');
-        const response = await fetch(API_URL + "?id=" + rowId), res = await response.json();
+        
+        const p = new URLSearchParams(window.location.search);
+        rowId = p.get('id');
+        
+        if (!rowId) {
+          document.getElementById('loader').style.display = "none";
+          document.getElementById('status').innerText = "❌ ไม่พบรหัสรายงาน (ID) ในลิงก์";
+          return;
+        }
+
+        // 🚨 3. เปลี่ยนจาก fetch มาใช้ JSONP เพื่อทะลุกำแพงบล็อก CORS ขององค์กร
+        const script = document.createElement('script');
+        script.src = API_URL + "?id=" + rowId + "&callback=liffCallback";
+        document.body.appendChild(script);
+
+      } catch (e) { 
+        document.getElementById('loader').style.display = "none";
+        document.getElementById('status').innerText = "❌ Error: " + e.message; 
+      }
+    }
+
+    // 🚨 4. ฟังก์ชันรับข้อมูลกลับจาก Google Apps Script และสั่งเปิดแชร์หน้าต่างไลน์
+    async function liffCallback(res) {
+      try {
+        if (!res || res === "Error") {
+          throw new Error("ไม่พบข้อมูลรายงานในชีต Database");
+        }
 
         const getImg = (id) => (id && id.trim() !== "") ? "https://drive.google.com/uc?export=view&id=" + id.trim() : "https://via.placeholder.com/800";
         const getView = (id) => (id && id.trim() !== "") ? "https://drive.google.com/file/d/" + id.trim() + "/view?usp=sharing" : "https://www.isoc.go.th/";
-        let locList = res.l_raw.split(",").map(item => { let pts = item.split("|"); return `- จ.${pts[2]} อ.${pts[1]} ต.${pts[0]}`; });
+        
+        let locList = res.l_raw.split(",").map(item => { 
+          let pts = item.split("|"); 
+          return `- จ.${pts[2]} อ.${pts[1]} ต.${pts[0]}`; 
+        });
+        
         const flexShareUrl = "https://liff.line.me/" + LIFF_ID + "?id=" + rowId;
 
-        const result = await liff.shareTargetPicker([{
+        // สั่งเปิดหน้าต่างเลือกเพื่อน/กลุ่มไลน์ เพื่อแชร์ข้อมูล
+        await liff.shareTargetPicker([{
           "type": "flex",
           "altText": "🚨 แจ้งเตือนภัย: " + res.dis,
           "contents": {
             "type": "bubble", 
-            "size": "giga", // 🚀 เปลี่ยนเป็น giga (ใหญ่พิเศษ)
+            "size": "giga", 
             "body": {
               "type": "box", "layout": "vertical", "paddingAll": "0px",
               "contents": [
@@ -83,9 +116,16 @@
             }
           }
         }]);
-        liff.closeWindow(); 
-      } catch (e) { document.getElementById('status').innerText = "❌ Error: " + e.message; }
+
+        liff.closeWindow(); // ทำการแชร์เสร็จสมบูรณ์ ให้ปิดหน้าจออัตโนมัติ
+
+      } catch (err) {
+        document.getElementById('loader').style.display = "none";
+        document.getElementById('status').innerText = "❌ เกิดข้อผิดพลาด: " + err.message;
+        document.getElementById('btnGroup').style.display = "flex";
+      }
     }
+
     main();
   </script>
 </body>
