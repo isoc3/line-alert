@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ทดสอบระบบแชร์</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; text-align: center; }
+    button { padding: 15px 30px; background-color: #06C755; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(6,199,85,0.3); }
+    button:disabled { background-color: #cbd5e1; cursor: not-allowed; box-shadow: none; }
+    #status { margin-top: 20px; font-size: 16px; color: #334155; }
+  </style>
+</head>
+<body>
+
+  <h2>ระบบทดสอบ LIFF Share</h2>
+  <button id="shareBtn" onclick="testShare()" disabled>⏳ กำลังเตรียมระบบ...</button>
+  <p id="status"></p>
+
+  <script>
+    const LIFF_ID = "2010041585-Xig31aUQ"; // รหัส LIFF ของคุณ
+
+    async function main() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+        // ถ้า LIFF พร้อมทำงาน ให้เปิดปุ่ม
+        document.getElementById('shareBtn').innerText = "📤 ทดสอบแชร์ Flex Message";
+        document.getElementById('shareBtn').disabled = false;
+        document.getElementById('status').innerText = "✅ LIFF เชื่อมต่อสำเร็จ พร้อมแชร์!";
+      } catch (e) {
+        document.getElementById('status').innerText = "❌ Error Init: " + e.message;
+      }
+    }
+
+    async function testShare() {
+      try {
+        // Flex Message จำลองแบบง่ายที่สุด
+        const dummyFlex = {
+          "type": "bubble",
+          "body": {
+            "type": "box",
+            "layout": "vertical",
+            "paddingAll": "20px",
+            "contents": [
+              { "type": "text", "text": "🎉 ทดสอบการแชร์สำเร็จ!", "weight": "bold", "size": "xl", "color": "#06C755" },
+              { "type": "text", "text": "ระบบ shareTargetPicker ของ LIFF ID นี้ สามารถทำงานได้ตามปกติครับ", "wrap": true, "margin": "md", "color": "#333333" }
+            ]
+          }
+        };
+
+        // สั่งเปิดหน้าต่างแชร์
+        const result = await liff.shareTargetPicker([
+          {
+            "type": "flex",
+            "altText": "ทดสอบระบบแชร์",
+            "contents": dummyFlex
+          }
+        ]);
+
+        if (result) {
+          document.getElementById('status').innerText = "✅ คุณได้กดแชร์ข้อความเรียบร้อยแล้ว!";
+          setTimeout(() => liff.closeWindow(), 2000); // ปิดหน้าต่างอัตโนมัติหลังแชร์เสร็จ
+        } else {
+          document.getElementById('status').innerText = "⚠️ คุณยกเลิกการแชร์";
+        }
+      } catch (e) {
+        document.getElementById('status').innerText = "❌ Share Error: " + e.message;
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
