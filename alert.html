@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,19 +18,19 @@
 </head>
 <body>
   <div id="loader" class="loader"></div>
-  <p id="status">กำลังดึงข้อมูลฐานข้อมูล...</p>
+  <p id="status">กำลังดึงข้อมูลรายงาน...</p>
   <div id="btnGroup" class="btn-group">
-    <button class="btn-retry" onclick="location.reload()">แชร์ใหม่</button>
+    <button class="btn-retry" onclick="location.reload()">โหลดใหม่</button>
     <button class="btn-close" onclick="liff.closeWindow()">ปิด</button>
   </div>
 
   <script>
     const LIFF_ID = "2010041585-Xig31aUQ"; 
     
-    // 🚨 1. URL ของแอปเว็บกูเกิลของคุณ
+    // 🚨 URL ของ Google Apps Script (ตรวจสอบให้แน่ใจว่าเป็นเวอร์ชันที่รองรับ callback แล้ว)
     const API_URL = "https://script.google.com/macros/s/AKfycbxHjLlWb3tOIOGkizcdAn1cFYd9a_NM7du7Nw3KM5WDEH-B17pbGIINsKTmi2-RpdO8Pw/exec"; 
 
-    // 🚨 2. ใส่ ID รูปภาพแบบคงที่ของคุณตรงนี้
+    // 🚨 ID รูปภาพแบบคงที่
     const BG_IMG_ID = "1BN7SKJAsPCyBx3cUV_LNDXRcjnP86Th1";
     const LOGO_LEFT_ID = "1BN7SKJAsPCyBx3cUV_LNDXRcjnP86Th1";
     const LOGO_RIGHT_ID = "1Qz3iZQzMrrFkcG_G-F9Mgm6pF7Ljw79M";
@@ -42,6 +42,7 @@
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         
+        // ดึงพารามิเตอร์ ?id= จาก URL (ตัวอย่าง: https://liff.line.me/xxxxxx?id=1)
         const p = new URLSearchParams(window.location.search);
         rowId = p.get('id');
         
@@ -51,35 +52,38 @@
           return;
         }
 
-        // 🚨 3. เปลี่ยนจาก fetch มาใช้ JSONP เพื่อทะลุกำแพงบล็อก CORS ขององค์กร
+        // 💡 ใช้ JSONP เพื่อดึงข้อมูล ทะลุกำแพงการบล็อกของมือถือและเครือข่ายองค์กร
         const script = document.createElement('script');
         script.src = API_URL + "?id=" + rowId + "&callback=liffCallback";
         document.body.appendChild(script);
 
       } catch (e) { 
         document.getElementById('loader').style.display = "none";
-        document.getElementById('status').innerText = "❌ Error: " + e.message; 
+        document.getElementById('status').innerText = "❌ Error Init: " + e.message; 
       }
     }
 
-    // 🚨 4. ฟังก์ชันรับข้อมูลกลับจาก Google Apps Script และสั่งเปิดแชร์หน้าต่างไลน์
+    // 💡 ฟังก์ชันนี้จะถูกเรียกใช้อัตโนมัติเมื่อ Google Apps Script ส่งข้อมูลกลับมาสำเร็จ
     async function liffCallback(res) {
       try {
         if (!res || res === "Error") {
-          throw new Error("ไม่พบข้อมูลรายงานในชีต Database");
+          throw new Error("ไม่พบข้อมูลรายงานในชีต Database หรือดึงข้อมูลล้มเหลว");
         }
+
+        document.getElementById('status').innerText = "⏳ กำลังเปิดหน้าต่างแชร์...";
 
         const getImg = (id) => (id && id.trim() !== "") ? "https://drive.google.com/uc?export=view&id=" + id.trim() : "https://via.placeholder.com/800";
         const getView = (id) => (id && id.trim() !== "") ? "https://drive.google.com/file/d/" + id.trim() + "/view?usp=sharing" : "https://www.isoc.go.th/";
         
-        let locList = res.l_raw.split(",").map(item => { 
+        let locList = res.l_raw ? res.l_raw.split(",").map(item => { 
           let pts = item.split("|"); 
-          return `- จ.${pts[2]} อ.${pts[1]} ต.${pts[0]}`; 
-        });
+          if(pts.length === 3) return `- จ.${pts[2]} อ.${pts[1]} ต.${pts[0]}`; 
+          return item;
+        }) : ["ไม่ระบุพื้นที่"];
         
         const flexShareUrl = "https://liff.line.me/" + LIFF_ID + "?id=" + rowId;
 
-        // สั่งเปิดหน้าต่างเลือกเพื่อน/กลุ่มไลน์ เพื่อแชร์ข้อมูล
+        // สั่งเปิดหน้าต่างเลือกเพื่อน/กลุ่มใน LINE
         await liff.shareTargetPicker([{
           "type": "flex",
           "altText": "🚨 แจ้งเตือนภัย: " + res.dis,
@@ -93,7 +97,7 @@
                 { "type": "box", "layout": "vertical", "contents": [
                   { "type": "box", "layout": "horizontal", "paddingAll": "15px", "backgroundColor": "#00000099", "contents": [
                     { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "contents": [{ "type": "image", "url": getImg(LOGO_LEFT_ID), "size": "full" }] },
-                    { "type": "box", "layout": "vertical", "flex": 4, "contents": [{ "type": "text", "text": "ศูนย์ข้อมูลน้ำ", "weight": "bold", "color": "#ffffff", "align": "center" }, { "type": "text", "text": "กอ.รมน.ภาค 3", "size": "sm", "color": "#ffffff", "align": "center" }] },
+                    { "type": "box", "layout": "vertical", "flex": 4, "justifyContent": "center", "contents": [{ "type": "text", "text": "ศูนย์ข้อมูลน้ำ", "weight": "bold", "color": "#ffffff", "align": "center" }, { "type": "text", "text": "กอ.รมน.ภาค 3", "size": "sm", "color": "#ffffff", "align": "center" }] },
                     { "type": "box", "layout": "vertical", "width": "50px", "height": "50px", "contents": [{ "type": "image", "url": getImg(LOGO_RIGHT_ID), "size": "full" }] }
                   ]},
                   { "type": "box", "layout": "vertical", "backgroundColor": res.type == "24" ? "#b22222" : "#FF9500", "paddingAll": "10px", "contents": [{ "type": "text", "text": res.type == "24" ? "🚨 เฝ้าระวังสูงสุด (24 ชม.)" : "⚠️ เฝ้าระวังล่วงหน้า (48 ชม.)", "color": "#ffffff", "weight": "bold", "align": "center" }] },
@@ -104,20 +108,21 @@
                       { "text": locList.join("\n"), "type": "text", "wrap": true, "weight": "bold", "size": "sm" },
                       { "text": "ภัย: " + res.dis, "type": "text", "weight": "bold", "color": res.type == "24" ? "#FF3B30" : "#FF9500", "margin": "md", "wrap": true },
                       { "text": res.det, "type": "text", "wrap": true, "size": "sm", "margin": "sm", "color": "#333333" },
-                      { "type": "text", "text": "🕒 ข้อมูล ณ วันที่ " + res.tm, "size": "xs", "color": "#aaaaaa", "margin": "xl" }
+                      { "type": "text", "text": "🕒 ข้อมูล ณ วันที่ " + res.tm, "size": "xs", "color": "#aaaaaa", "margin": "xl", "align": "center" }
                     ]}
                   ]}
                 ]},
                 { "type": "box", "layout": "horizontal", "backgroundColor": "#ffffff", "paddingAll": "20px", "contents": [
-                  { "type": "button", "style": "primary", "color": res.type == "24" ? "#b22222" : "#FF9500", "action": { "type": "uri", "label": "อ่านเพิ่ม", "uri": res.u } },
-                  { "type": "button", "style": "secondary", "action": { "type": "uri", "label": "แชร์ต่อ", "uri": flexShareUrl } } 
+                  { "type": "button", "style": "primary", "color": res.type == "24" ? "#b22222" : "#FF9500", "action": { "type": "uri", "label": "อ่านเพิ่ม", "uri": res.u || "https://www.isoc.go.th/" } },
+                  { "type": "button", "style": "secondary", "margin": "sm", "action": { "type": "uri", "label": "แชร์ต่อ", "uri": flexShareUrl } } 
                 ]}
               ]
             }
           }
         }]);
 
-        liff.closeWindow(); // ทำการแชร์เสร็จสมบูรณ์ ให้ปิดหน้าจออัตโนมัติ
+        // ปิดหน้าจออัตโนมัติเมื่อกดแชร์เสร็จ หรือกดยกเลิก
+        liff.closeWindow(); 
 
       } catch (err) {
         document.getElementById('loader').style.display = "none";
